@@ -1,1 +1,236 @@
 
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Laporan Keuangan</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="index.js"></script>
+</head>
+
+<body>
+    <div class="container my-4">
+        <h2 class="text-center text-primary fw-bold">Laporan Keuangan Harian</h2>
+        <p class="text-center text-muted fst-italic">Mengelola keuangan Anda dengan lebih baik</p>
+
+        <div class="row text-center my-3">
+            <div class="col-md-4">
+                <div class="card p-3 bg-light">
+                    <h5 class="text-success">Pemasukan</h5>
+                    <span id="totalIncome" class="fw-bold">Rp 0</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 bg-light">
+                    <h5 class="text-danger">Pengeluaran</h5>
+                    <span id="totalExpense" class="fw-bold">Rp 0</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 bg-light">
+                    <h5 class="text-primary">Saldo Akhir</h5>
+                    <span id="finalBalance" class="fw-bold">Rp 0</span>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="mt-4">Tambah Transaksi</h3>
+        <form id="transactionForm" class="row g-3">
+            <div class="col-md-3">
+                <label for="date" class="form-label">Tanggal</label>
+                <input type="date" id="date" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label for="description" class="form-label">Keterangan</label>
+                <input type="text" id="description" class="form-control" placeholder="Masukkan keterangan transaksi"
+                    required>
+            </div>
+            <div class="col-md-3">
+                <label for="type" class="form-label">Tipe Transaksi</label>
+                <select id="type" class="form-select">
+                    <option value="income">Pemasukan</option>
+                    <option value="expense">Pengeluaran</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="amount" class="form-label">Jumlah (Rp)</label>
+                <input type="number" id="amount" class="form-control" required placeholder="Jumlah (Rp)">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Simpan Transaksi</button>
+            </div>
+        </form>
+
+        <h3 class="mt-4">Data Keuangan</h3>
+        <div class="table-responsive">
+            <table class="table table-bordered text-center" id="financeTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>NO</th>
+                        <th>Tanggal</th>
+                        <th>Keterangan</th>
+                        <th>Pemasukan (Rp)</th>
+                        <th>Pengeluaran (Rp)</th>
+                        <th>Saldo (Rp)</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="financeTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between mt-3">
+            <button id="newReport" class="btn btn-warning"> <i class="fa fa-file"></i> Laporan Baru</button>
+            <button id="savePDF" class="btn btn-danger"> <i class="fa fa-file-pdf"></i> Simpan PDF</button>
+        </div>
+    </div>
+    <footer class="text-center mt-4 p-3 bg-light">
+        <p class="mb-0">© <span id="year"></span> Laporan Keuangan. Design By DLB</p>
+    </footer>
+
+    <script>
+        document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+
+</body>
+
+</html>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const transactionForm = document.getElementById("transactionForm");
+    const financeTableBody = document.getElementById("financeTableBody");
+    const totalIncome = document.getElementById("totalIncome");
+    const totalExpense = document.getElementById("totalExpense");
+    const finalBalance = document.getElementById("finalBalance");
+    const savePDFButton = document.getElementById("savePDF");
+    const newReportButton = document.getElementById("newReport");
+
+    let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+
+    function formatRupiah(amount) {
+        return amount.toLocaleString("id-ID", { style: "currency", currency: "IDR" });
+    }
+
+    function getCurrentDate() {
+        const today = new Date();
+        const day = String(today.getDate()).padStart(2, "0");
+        const month = String(today.getMonth() + 1).padStart(2, "0"); // Januari = 0
+        const year = today.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    function updateTable() {
+        financeTableBody.innerHTML = "";
+        let incomeTotal = 0;
+        let expenseTotal = 0;
+        let balance = 0;
+
+        transactions.forEach((transaction, index) => {
+            balance += transaction.type === "income" ? transaction.amount : -transaction.amount;
+            financeTableBody.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${transaction.date}</td>
+                <td>${transaction.description}</td>
+                <td>${transaction.type === "income" ? formatRupiah(transaction.amount) : "-"}</td>
+                <td>${transaction.type === "expense" ? formatRupiah(transaction.amount) : "-"}</td>
+                <td>${formatRupiah(balance)}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTransaction(${index})">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+            if (transaction.type === "income") incomeTotal += transaction.amount;
+            else expenseTotal += transaction.amount;
+        });
+
+        totalIncome.textContent = formatRupiah(incomeTotal);
+        totalExpense.textContent = formatRupiah(expenseTotal);
+        finalBalance.textContent = formatRupiah(balance);
+        localStorage.setItem("transactions", JSON.stringify(transactions));
+    }
+
+    window.deleteTransaction = function (index) {
+        transactions.splice(index, 1);
+        updateTable();
+    };
+
+    transactionForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        transactions.push({
+            date: date.value,
+            description: description.value,
+            type: type.value,
+            amount: parseFloat(amount.value)
+        });
+        updateTable();
+        transactionForm.reset();
+    });
+
+    newReportButton.addEventListener("click", function () {
+        transactions = [];
+        localStorage.removeItem("transactions");
+        updateTable();
+    });
+
+    // Menyimpan tabel ke PDF dengan border dan tanpa kolom "Aksi"
+    savePDFButton.addEventListener("click", function () {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+
+    const currentDate = getCurrentDate(); // Ambil tanggal hari ini
+
+
+        doc.text("Laporan Keuangan Harian", 75, 10);
+        //doc.text(`Tanggal: ${currentDate}`, 150, 4); // Tambahkan tanggal di pojok kanan atas
+
+
+        const table = document.getElementById("financeTable");
+        const rows = [];
+        const headers = [];
+
+        // Ambil header tabel kecuali "Aksi"
+        document.querySelectorAll("#financeTable thead th").forEach((th, index) => {
+            if (index !== 6) { // Index 6 adalah kolom "Aksi"
+                headers.push(th.innerText);
+            }
+        });
+
+        // Ambil isi tabel kecuali "Aksi"
+        document.querySelectorAll("#financeTable tbody tr").forEach((tr) => {
+            const rowData = [];
+            tr.querySelectorAll("td").forEach((td, index) => {
+                if (index !== 6) { // Index 6 adalah kolom "Aksi"
+                    rowData.push(td.innerText);
+                }
+            });
+            rows.push(rowData);
+        });
+
+        // menambahkan border pada tabel PDF
+        doc.autoTable({
+            head: [["No", "Tanggal", "Keterangan", "Pemasukan (Rp)", "Pengeluaran (Rp)", "Saldo (Rp)"]],
+            body: rows,
+            styles: { lineWidth: 0.1, lineColor: [0, 0, 0], fontSize: 10 },
+            headStyles: { fillColor: [22, 136, 147], textColor: 255 },
+            theme: "grid",
+            margin: { top: 20 }
+        });
+        let finalY = doc.autoTable.previous.finalY + 6; // Ambil posisi terakhir tabel dan tambah jarak
+        let textX = 14;
+        doc.setFont("helvetica", "bolditalic");
+        doc.setFontSize(10);
+        doc.text(`Tanggal Laporan: ${currentDate}`, textX, finalY);
+        doc.save("Laporan-Keuangan.pdf");
+    });
+
+    updateTable();
+});
+</script>
