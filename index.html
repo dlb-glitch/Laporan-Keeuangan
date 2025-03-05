@@ -101,7 +101,7 @@
 
 </html>
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
     const transactionForm = document.getElementById("transactionForm");
     const financeTableBody = document.getElementById("financeTableBody");
     const totalIncome = document.getElementById("totalIncome");
@@ -118,10 +118,20 @@
 
     function getCurrentDate() {
         const today = new Date();
-        const day = String(today.getDate()).padStart(2, "0");
-        const month = String(today.getMonth() + 1).padStart(2, "0"); // Januari = 0
+        return today.toLocaleDateString("id-ID");
+    }
+
+    function getCurrentDate() {
+        const today = new Date();
+        const months = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+        const day = today.getDate();
+        const month = months[today.getMonth()];
         const year = today.getFullYear();
-        return `${day}/${month}/${year}`;
+
+        return `${day} ${month} ${year}`;
     }
 
     function updateTable() {
@@ -141,6 +151,9 @@
                 <td>${transaction.type === "expense" ? formatRupiah(transaction.amount) : "-"}</td>
                 <td>${formatRupiah(balance)}</td>
                 <td>
+                    <button class="btn btn-warning btn-sm" onclick="editTransaction(${index})">
+                        <i class="fa fa-edit"></i>
+                    </button>
                     <button class="btn btn-danger btn-sm" onclick="deleteTransaction(${index})">
                         <i class="fa fa-trash"></i>
                     </button>
@@ -161,7 +174,28 @@
         updateTable();
     };
 
-    transactionForm.addEventListener("submit", function (event) {
+    window.editTransaction = function (index) {
+        const transaction = transactions[index];
+        document.getElementById("date").value = transaction.date;
+        document.getElementById("description").value = transaction.description;
+        document.getElementById("type").value = transaction.type;
+        document.getElementById("amount").value = transaction.amount;
+
+        transactionForm.onsubmit = function (event) {
+            event.preventDefault();
+            transactions[index] = {
+                date: date.value,
+                description: description.value,
+                type: type.value,
+                amount: parseFloat(amount.value)
+            };
+            updateTable();
+            transactionForm.reset();
+            transactionForm.onsubmit = addTransaction;
+        };
+    };
+
+    function addTransaction(event) {
         event.preventDefault();
         transactions.push({
             date: date.value,
@@ -171,7 +205,9 @@
         });
         updateTable();
         transactionForm.reset();
-    });
+    }
+
+    transactionForm.onsubmit = addTransaction;
 
     newReportButton.addEventListener("click", function () {
         transactions = [];
@@ -179,42 +215,27 @@
         updateTable();
     });
 
-    // Menyimpan tabel ke PDF dengan border dan tanpa kolom "Aksi"
     savePDFButton.addEventListener("click", function () {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
-
-    const currentDate = getCurrentDate(); // Ambil tanggal hari ini
-
+        const currentDate = getCurrentDate();
 
         doc.text("Laporan Keuangan Harian", 75, 10);
-        //doc.text(`Tanggal: ${currentDate}`, 150, 4); // Tambahkan tanggal di pojok kanan atas
+        const rows = transactions.map((t, index) => [
+            index + 1,
+            t.date,
+            t.description,
+            t.type === "income" ? formatRupiah(t.amount) : "-",
+            t.type === "expense" ? formatRupiah(t.amount) : "-",
+            formatRupiah(t.amount)
+        ]);
 
+        const incomeTotal = transactions.filter(t => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+        const expenseTotal = transactions.filter(t => t.type === "expense").reduce((sum, t) => sum + t.amount, 0);
+        const finalBalance = incomeTotal - expenseTotal;
 
-        const table = document.getElementById("financeTable");
-        const rows = [];
-        const headers = [];
+        rows.push(["", "", "Total", { content: formatRupiah(incomeTotal), styles: { fontStyle: "bolditalic" } }, { content: formatRupiah(expenseTotal), styles: { fontStyle: "bolditalic" } }, { content: formatRupiah(finalBalance), styles: { fontStyle: "bolditalic" } }]);
 
-        // Ambil header tabel kecuali "Aksi"
-        document.querySelectorAll("#financeTable thead th").forEach((th, index) => {
-            if (index !== 6) { // Index 6 adalah kolom "Aksi"
-                headers.push(th.innerText);
-            }
-        });
-
-        // Ambil isi tabel kecuali "Aksi"
-        document.querySelectorAll("#financeTable tbody tr").forEach((tr) => {
-            const rowData = [];
-            tr.querySelectorAll("td").forEach((td, index) => {
-                if (index !== 6) { // Index 6 adalah kolom "Aksi"
-                    rowData.push(td.innerText);
-                }
-            });
-            rows.push(rowData);
-        });
-
-        // menambahkan border pada tabel PDF
         doc.autoTable({
             head: [["No", "Tanggal", "Keterangan", "Pemasukan (Rp)", "Pengeluaran (Rp)", "Saldo (Rp)"]],
             body: rows,
@@ -223,14 +244,19 @@
             theme: "grid",
             margin: { top: 20 }
         });
-        let finalY = doc.autoTable.previous.finalY + 6; // Ambil posisi terakhir tabel dan tambah jarak
-        let textX = 14;
-        doc.setFont("helvetica", "bolditalic");
+        doc.setFont("times", "bolditalic"); // Mengatur font menjadi Bold Italic
+        doc.setFontSize(10); // Ukuran font 10
+
+        doc.text(`Tanggal Laporan: ${currentDate}`, 15, doc.autoTable.previous.finalY + 6);
+
+        const pageHeight = doc.internal.pageSize.height;
+        doc.setFont("times", "italic");
         doc.setFontSize(10);
-        doc.text(`Tanggal Laporan: ${currentDate}`, textX, finalY);
+        doc.text("© 2025 Laporan Keuangan Design By DLB Semua Hak Dilindungi.", 75, pageHeight - 10);
         doc.save("Laporan-Keuangan.pdf");
     });
 
     updateTable();
 });
+
 </script>
