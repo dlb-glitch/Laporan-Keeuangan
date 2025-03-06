@@ -1,12 +1,11 @@
 # Aplikasi Laporan Keuangan
 
-Aplikasi ini digunakan untuk mencatat transaksi keuangan secara otomatis dalam tabel, dengan fitur penyimpanan ke **Excel** dan **PDF**. Data disimpan menggunakan **localStorage** agar bisa digunakan tanpa database.
+Aplikasi ini digunakan untuk mencatat transaksi keuangan secara otomatis dalam tabel, dengan fitur penyimpanan ke **PDF**. Data disimpan menggunakan **localStorage** agar bisa digunakan tanpa database.
 
 ## ✨ Fitur Utama
 - **Input Data Keuangan**: Tambah transaksi pemasukan dan pengeluaran.
 - **Tabel Otomatis**: Data yang diinput langsung masuk ke tabel.
 - **Ekspor Data**: Simpan laporan dalam **Excel** dan **PDF**.
-- **Grafik Keuangan**: Pie Chart, Bar Chart, dan Line Chart untuk visualisasi.
 - **Filter Data**: Sortir transaksi berdasarkan tanggal atau kategori.
 - **Edit & Hapus Data**: Ubah atau hapus transaksi langsung di aplikasi.
 
@@ -20,9 +19,7 @@ Aplikasi ini digunakan untuk mencatat transaksi keuangan secara otomatis dalam t
 ## 🛠️ Teknologi yang Digunakan
 - **HTML, CSS, JavaScript**
 - **localStorage** untuk menyimpan data tanpa database
-- **SheetJS (xlsx.js)** untuk ekspor ke Excel
 - **jsPDF** untuk ekspor ke PDF
-- **Chart.js** untuk menampilkan grafik
 
 ## 📂 Hosting
 Aplikasi ini bisa dihosting di **GitHub Pages** agar mudah diakses.
